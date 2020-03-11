@@ -23,8 +23,7 @@ FIXME
 
 ## TODOs
 
-* Clean up code
-  * Nicer inclusion of safe_eval() in the quine
+* Write README
 * Show to other people
 * Enjoy even more! :D
 * Other languages?

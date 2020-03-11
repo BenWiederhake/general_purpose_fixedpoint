@@ -1,27 +1,31 @@
 #!/usr/bin/env python3
 
-# The "format" is explained in `run`.
-def safe_eval(code, sim_input):
-    if not isinstance(code, str):
-        raise TypeError('Lolwut?  Attempted to run non-str code (was {})')
-    given = dict()
-    given['input'] = sim_input
-    # Pass `safe_eval` for now.
-    # FIXME: Is this really not cheating?
-    given['safe_eval'] = safe_eval
-    the_locals = dict()
-    try:
-        exec(code, given, the_locals)
-    except BaseException as e:
-        raise e
-    return the_locals.get('output') or ''
+## The "format" is explained in `run`.
+#def old_safe_eval(code, sim_input):
+#    if not isinstance(code, str):
+#        raise TypeError('Lolwut?  Attempted to run non-str code (was {})')
+#    given = dict()
+#    given['input'] = sim_input
+#    # Pass `safe_eval` for now.
+#    # FIXME: Is this really not cheating?
+#    given['safe_eval'] = old_safe_eval
+#    the_locals = dict()
+#    try:
+#        exec(code, given, the_locals)
+#    except BaseException as e:
+#        raise e
+#    return the_locals.get('output') or ''
 
 
 def make_fixedpoint(transformation_code):
     quine_raw_fmt = '''\
+def e(c, i):
+    l = dict()
+    exec(c, dict(input=i), l)
+    return l.get('output') or ''
 magic = %
 own_code = magic.replace(chr(37), repr(magic))
-output = safe_eval(safe_eval({0}, own_code), input)'''
+output = e(e({0}, own_code), input)'''
     # The core magic is that:
     # - `make_fixedpoint` must be total, i.e., always halt
     # - `transformation_code` must be total, i.e. always halt
@@ -37,6 +41,11 @@ output = safe_eval(safe_eval({0}, own_code), input)'''
 
 
 def run():
+    def e(c, i):
+        l = dict()
+        exec(c, dict(input=i), l)
+        return l.get('output') or ''
+
     print('Write your transformation on a single line, then press ENTER.')
     print('The input will be given as the *variable* `input`.')
     print('Write the output into the variable `output`, do not print it!')
@@ -44,7 +53,7 @@ def run():
     # FIXME: Currently reads only 1 line
     transformation_code = input('>>> ')
     fixedpoint_code = make_fixedpoint(transformation_code)
-    f_fixedpoint_code = safe_eval(transformation_code, fixedpoint_code)
+    f_fixedpoint_code = e(transformation_code, fixedpoint_code)
     print()
     print('# The fixed-point code `e` is:')
     print(fixedpoint_code)
@@ -71,11 +80,11 @@ def run():
     print()
     print()
     print('# First, run it with the (second) transformed code:')
-    transformed_output = safe_eval(f_fixedpoint_code, noncode_input)
+    transformed_output = e(f_fixedpoint_code, noncode_input)
     print(transformed_output)
     print()
     print('# Finally, run it with the (first) "fixed-point" code:')
-    fp_output = safe_eval(fixedpoint_code, noncode_input)
+    fp_output = e(fixedpoint_code, noncode_input)
     print(fp_output)
     print()
     if fp_output == transformed_output:
