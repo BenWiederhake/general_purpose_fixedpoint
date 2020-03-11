@@ -1,81 +1,27 @@
 #!/usr/bin/env python3
 
-# "Format" is: the code will be executed with the local variable `sim_input`
-# set.  The output will be read from the local `sim_output`, or `None` if not set.
+# The "format" is explained in `run`.
 def safe_eval(code, sim_input):
     if not isinstance(code, str):
         raise TypeError('Lolwut?  Attempted to run non-str code (was {})')
-    print('BEGIN')
     given = dict()
-    given['sim_input'] = sim_input
+    given['input'] = sim_input
     # Pass `safe_eval` for now.
     # FIXME: Is this really not cheating?
     given['safe_eval'] = safe_eval
     the_locals = dict()
-    print('CODE', code)
-    print('ARG', sim_input)
-    print('RUN')
     try:
         exec(code, given, the_locals)
     except BaseException as e:
-        print('Masked exception', e)
-        print('END(E)')
         raise e
-        return ''
-    out = the_locals.get('sim_output')
-    print('RETURN', out)
-    print('END')
-    return out or ''
+    return the_locals.get('output') or ''
 
 
 def make_fixedpoint(transformation_code):
-    # == Historic code, only left here for entertainment purposes. ==
-    # In case you're wondering, I was trying to build it on top of
-    # https://en.wikipedia.org/wiki/Kleene%27s_recursion_theorem#Rogers's_fixed-point_theorem
-
-    # fixed point is h(e) where e:=Foh and h(x)|→x(x)
-    # so: ((Foh)(Foh))(y)
-
-    # Version 1, works, mostly, unless the transformation checks for '#' or similar.
-    # # FIXME: If running by hand, run this first:
-    # # from general_purpose_proof import safe_eval  # I could also copy the code, this is honestly not cheating!
-    # # sim_input = 'YOUR FANCY NON-CODE INPUT'
-    # # ---
-    # # Intuition for the following is:
-    # # h(x) = 'sim_output = safe_eval(safe_eval(x, x), sim_input)'
-    # h = 'sim_output = "sim_output = safe_eval(safe_eval({{0}}, {{0}}), sim_input)".format(repr(sim_input))'
-    # foh = 'sim_output = safe_eval({{}}, safe_eval({{}}, sim_input))'.format(repr({}), repr(h))
-    # fohfoh = safe_eval(foh, foh)
-    # sim_output = safe_eval(fohfoh, sim_input)
-    # … format(repr(transformation_code)
-
-    # Version 2, doesn't work
-    # sim_output = 'sim_output = "sim_output = safe_eval(safe_eval({{0}}, {{0}}), sim_input)".format(repr(sim_input))'
-    # sim_output = safe_eval(safe_eval('sim_output = safe_eval({{}}, safe_eval({{}}, sim_input))'.format(repr({}), repr(sim_output)), 'sim_output = safe_eval({{}}, safe_eval({{}}, sim_input))'.format(repr({}), repr(sim_output))), sim_input)
-    # … format(repr(transformation_code)
-
-    # Version 3, syntax error, too many steps at once, guessing doesn't work >_<
-    # return '''\
-    #sim_ output = safe_eval(safe_eval('sim_output = safe_eval({1}, safe_eval(\'sim_output = "sim_output = safe_eval(safe_eval({0}, {0}), sim_input)".format(repr(sim_input))\', sim_input))', 'sim_output = safe_eval({1}, safe_eval(\'sim_output = "sim_output = safe_eval(safe_eval({0}, {0}), sim_input)".format(repr(sim_input))\', sim_input))'), sim_input)
-    # '''.format(repr(transformation_code), repr(transformation_code))
-
-    # Version 4
-    #  # Intuition for the following is:
-    #  # h(x) = 'sim_output = safe_eval(safe_eval(x, x), sim_input)'
-    #  h = 'sim_output = "sim_output = safe_eval(safe_eval({0}, {0}), sim_input)".format(repr(sim_input))'
-    #  # Intuition for the following is:
-    #  # foh(x) = 'safe_eval(f, safe_eval(h, x))'
-    #  foh_code = "'sim_output = safe_eval({{}}, safe_eval({{}}, sim_input))'.format(repr({0}), repr({1}))".format(repr(transformation_code), repr(h))
-    #  # Intuition for the following is:
-    #  # _(x) = 'safe_eval(safe_eval(foh, foh), x)'
-    #  return 'sim_output = safe_eval(safe_eval({0}, {0}), sim_input)'.format(foh_code)
-
-    # Version 5: I'm a dumb idiot.  This is sooo much simpler.
-    # Fun fact: This is a quine factory!
     quine_raw_fmt = '''\
 magic = %
 own_code = magic.replace(chr(37), repr(magic))
-sim_output = safe_eval(safe_eval({0}, own_code), sim_input)'''
+output = safe_eval(safe_eval({0}, own_code), input)'''
     # The core magic is that:
     # - `make_fixedpoint` must be total, i.e., always halt
     # - `transformation_code` must be total, i.e. always halt
@@ -91,23 +37,27 @@ sim_output = safe_eval(safe_eval({0}, own_code), sim_input)'''
 
 
 def run():
+    print('Write your transformation on a single line, then press ENTER.')
+    print('The input will be given as the *variable* `input`.')
+    print('Write the output into the variable `output`, do not print it!')
+    print('Note that it has to be a *transformation*, so both input and output are programs.')
     # FIXME: Currently reads only 1 line
-    transformation_code = input('Write your transformation on a single line, then press ENTER:\n> ')
+    transformation_code = input('>>> ')
     fixedpoint_code = make_fixedpoint(transformation_code)
     f_fixedpoint_code = safe_eval(transformation_code, fixedpoint_code)
     print()
     print('# The fixed-point code `e` is:')
     print(fixedpoint_code)
     print()
-    print('# According to the theorem, this should have the same effect as the code `F(e)`,')
+    print('# In order to show the theorem, this should have the same effect as the code `F(e)`,')
     print('# i.e., the code after running it *once* through your transformation:')
     print(f_fixedpoint_code)
     print()
     print()
-    print('# If you want to run it, enter something and press ENTER;')
-    print('# to exit leave it empty and press ENTER:')
+    print('# If you want to run it, enter anything (not necessarily code)')
+    print('# and press ENTER. If you want to exit, just press ENTER:')
     try:
-        noncode_input = input('> ')
+        noncode_input = input('>>> ')
     except EOFError:
         print('# Have a nice day! :)')
         exit(0)
@@ -120,18 +70,19 @@ def run():
 
     print()
     print()
-    print('# First, with the (second) transformed code:')
+    print('# First, run it with the (second) transformed code:')
     transformed_output = safe_eval(f_fixedpoint_code, noncode_input)
     print(transformed_output)
     print()
-    print('# Finally, with the (first) "fixed-point" code:')
+    print('# Finally, run it with the (first) "fixed-point" code:')
     fp_output = safe_eval(fixedpoint_code, noncode_input)
     print(fp_output)
     print()
     if fp_output == transformed_output:
-        print('# Told ya so! :D')
+        print('# They are equal!  Told ya so! :D')
     else:
-        print('# Ah, shit.  They differ.')
+        print('# Ahh shit.  They differ.  Please open an issue!')
+        print('# https://github.com/BenWiederhake/general_purpose_fixedpoint/issues/new')
 
 
 if __name__ == '__main__':

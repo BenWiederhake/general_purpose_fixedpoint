@@ -23,10 +23,8 @@ FIXME
 
 ## TODOs
 
-* Write rest
 * Clean up code
   * Nicer inclusion of safe_eval() in the quine
-  * Remove old artifacts (but leave them in git; hi future people!)
 * Show to other people
 * Enjoy even more! :D
 * Other languages?
